@@ -1,5 +1,12 @@
 export type PrefixOperatorTokenType = 'minus' | 'tilde' | 'bang' | 'left-paren';
-export type InfixOperatorTokenType = 'plus' | 'minus' | 'star' | 'star-star' | 'slash' | 'remainder';
+export type InfixOperatorTokenType =
+	'star-star' |
+	'star' | 'slash' | 'remainder' |
+	'plus' | 'minus' |
+	'greater' | 'greater-equal' | 'less' | 'less-equal' |
+	'equal-equal' | 'bang-equal' |
+	'and' |
+	'or' ;
 export type OperatorTokenType = PrefixOperatorTokenType | InfixOperatorTokenType | 'right-paren' | 'eof';
 export type ValueTokenType = 'number';
 export type IdentifierTokenType = 'identifier';
@@ -14,6 +21,12 @@ export type Token = OperatorToken | ValueToken | IdentifierToken;
 export function scanTokens(source: string): Token[] {
 	let index = 0;
 	let start = index;
+
+	const tokens: Token[] = [];
+
+	function pushToken(type: OperatorTokenType) {
+		tokens.push({ type, lexeme: source.slice(start, index) });
+	};
 
 	function isAtEnd() {
 		return index >= source.length;
@@ -80,30 +93,25 @@ export function scanTokens(source: string): Token[] {
 		return { type: 'identifier', lexeme, name: lexeme };
 	}
 
-	const tokens: Token[] = [];
-
 	while (!isAtEnd()) {
 		start = index;
-		const char = peek();
+		const char = advance();
 
 		switch (char) {
-			case '+': tokens.push({ type: 'plus', lexeme: char }); advance(); break;
-			case '-': tokens.push({ type: 'minus', lexeme: char }); advance(); break;
-			case '~': tokens.push({ type: 'tilde', lexeme: char }); advance(); break;
-			case '!': tokens.push({ type: 'bang', lexeme: char }); advance(); break;
-			case '*': {
-				advance();
-				if (match('*')) {
-					tokens.push({ type: 'star-star', lexeme: '**' });
-				} else {
-					tokens.push({ type: 'star', lexeme: char });
-				}
-				break;
-			}
-			case '/': tokens.push({ type: 'slash', lexeme: char }); advance(); break;
-			case '%': tokens.push({ type: 'remainder', lexeme: char }); advance(); break;
-			case '(': tokens.push({ type: 'left-paren', lexeme: char }); advance(); break;
-			case ')': tokens.push({ type: 'right-paren', lexeme: char }); advance(); break;
+			case '-': pushToken('minus'); break;
+			case '!': pushToken(match('=') ? 'bang-equal' : 'bang'); break;
+			case '(': pushToken('left-paren'); break;
+			case ')': pushToken('right-paren'); break;
+			case '*': pushToken(match('*') ? 'star-star' : 'star'); break;
+			case '/': pushToken('slash'); break;
+			case '&': if (match('&')) pushToken('and'); break;
+			case '%': pushToken('remainder'); break;
+			case '+': pushToken('plus'); break;
+			case '<': pushToken(match('=') ? 'less-equal' : 'less'); break;
+			case '=': if (match('=')) pushToken('equal-equal'); break;
+			case '>': pushToken(match('=') ? 'greater-equal' : 'greater'); break;
+			case '|': if (match('|')) pushToken('or'); break;
+			case '~': pushToken('tilde'); break;
 			default:
 				if (isNumeric(char)) {
 					tokens.push(number());
@@ -115,7 +123,7 @@ export function scanTokens(source: string): Token[] {
 					break;
 				}
 
-				advance(); // Skip all unknown characters
+				// Skip any whitespace and other unknown characters
 		}
 	}
 

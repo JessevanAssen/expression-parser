@@ -7,7 +7,23 @@ export function parse(source: string): Expression {
 	const iterator = TokenIterator(tokens);
 
 	function expression(): Expression {
-		return addition();
+		return or();
+	}
+
+	function or(): Expression {
+		return binary(['or'], and);
+	}
+
+	function and(): Expression {
+		return binary(['and'], equality);
+	}
+
+	function equality(): Expression {
+		return binary(['equal-equal', 'bang-equal'], comparison);
+	}
+
+	function comparison(): Expression {
+		return binary(['less', 'less-equal', 'greater', 'greater-equal'], addition);
 	}
 
 	function addition(): Expression {

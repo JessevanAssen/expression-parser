@@ -1,23 +1,31 @@
 import { scanTokens, TokenType, OperatorTokenType } from './lexer';
 
 test('Can scan tokens', () => {
-	const tokens = scanTokens('1 + 2 * 3');
+	const tokens = scanTokens('1+2*3');
 	const expected: TokenType[] = ['number', 'plus', 'number', 'star', 'number'];
 	expect(tokens.map(t => t.type)).toEqual(expected);
 });
 
 describe('Operators', () => {
 	const operators: [string, OperatorTokenType][] = [
-		['+', 'plus'],
 		['-', 'minus'],
-		['~', 'tilde'],
 		['!', 'bang'],
+		['!=', 'bang-equal'],
+		['(', 'left-paren'],
+		[')', 'right-paren'],
 		['*', 'star'],
 		['**', 'star-star'],
 		['/', 'slash'],
 		['%', 'remainder'],
-		['(', 'left-paren'],
-		[')', 'right-paren'],
+		['+', 'plus'],
+		['==', 'equal-equal'],
+		['>', 'greater'],
+		['<', 'less'],
+		['>=', 'greater-equal'],
+		['<=', 'less-equal'],
+		['~', 'tilde'],
+		['&&', 'and'],
+		['||', 'or'],
 	];
 	for (const [lexeme, tokenType] of operators) {
 		test(`Scans ${lexeme} to ${tokenType}`, () => {

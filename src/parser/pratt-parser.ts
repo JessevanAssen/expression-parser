@@ -46,6 +46,14 @@ export function parse(source: string): Expression {
 		'remainder': Binary(15),
 		'plus': Binary(14),
 		'minus': Binary(14),
+		'less': Binary(12),
+		'less-equal': Binary(12),
+		'greater': Binary(12),
+		'greater-equal': Binary(12),
+		'equal-equal': Binary(11),
+		'bang-equal': Binary(11),
+		'and': Binary(7),
+		'or': Binary(6),
 	}
 
 	function Binary(precedence: number, { rightAssociative = false } = {}): InfixParselet {

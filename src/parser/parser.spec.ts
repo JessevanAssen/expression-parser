@@ -1,4 +1,4 @@
-import { IdentifierExpression, ValueExpression } from './expression';
+import { Expression, IdentifierExpression, ValueExpression } from './expression';
 import { parse as prattParse } from './pratt-parser';
 import { parse as recursiveDescentParse } from './recursive-descent-parser';
 
@@ -30,7 +30,7 @@ for (const [label, parse] of [['Pratt parser', prattParse], ['Recursive descent 
 
 
 		describe('can parse binary expressions', () => {
-			const operators = ['**', '*', '/', '%', '+', '-'];
+			const operators = ['**', '*', '/', '%', '+', '-', '<', '<=', '>', '>=', '==', '!=', '&&', '||'];
 			for (const operator of operators) {
 				test(operator, () => {
 					const actual = parse(`1 ${operator} 2`);
@@ -43,88 +43,43 @@ for (const [label, parse] of [['Pratt parser', prattParse], ['Recursive descent 
 				})
 			}
 
-			for (const operator of ['*', '/', '+', '-']) {
+			for (const operator of ['*', '/', '+', '-', '<', '<=', '>', '>=', '==', '!=', '&&', '||']) {
 				test(`is left-associative for '${operator}'`, () => {
-					const actual = parse(`1 ${operator} 2 ${operator} 3 ${operator} 4`);
-					expect(actual).toEqual({
-						type: 'binary',
-						left: {
-							type: 'binary',
-							left: {
-								type: 'binary',
-								left: NumberExpression(1),
-								operator: expect.objectContaining({ lexeme: operator }),
-								right: NumberExpression(2),
-							},
-							operator: expect.objectContaining({ lexeme: operator }),
-							right: NumberExpression(3),
-						},
-						operator: expect.objectContaining({ lexeme: operator }),
-						right: NumberExpression(4),
-					});
+					testProgramMatchesSymbolicExpression(
+						`1 ${operator} 2 ${operator} 3 ${operator} 4`,
+						`(${operator} (${operator} (${operator} 1 2) 3) 4)`,
+					);
 				});
 			}
 
 			test(`is right-associative for '**'`, () => {
-				const actual = parse(`1 ** 2 ** 3`);
-				expect(actual).toEqual({
-					type: 'binary',
-					left: NumberExpression(1),
-					operator: expect.objectContaining({ lexeme: '**' }),
-					right: {
-						type: 'binary',
-						left: NumberExpression(2),
-						operator: expect.objectContaining({ lexeme: '**' }),
-						right: NumberExpression(3),
-					},
-				});
+				testProgramMatchesSymbolicExpression(
+					'1 ** 2 ** 3',
+					'(** 1 (** 2 3))',
+				);
 			});
 
-			test(`keeps correct precedence for '1 + 2 * 3'`, () => {
-				const actual = parse('1 + 2 * 3');
-				expect(actual).toEqual({
-					type: 'binary',
-					left: NumberExpression(1),
-					operator: expect.objectContaining({ lexeme: '+' }),
-					right: {
-						type: 'binary',
-						left: NumberExpression(2),
-						operator: expect.objectContaining({ lexeme: '*' }),
-						right: NumberExpression(3),
-					},
-				});
-			});
+			describe('precedence', () => {
+				for (const [program, symbolicExpression] of [
+					['1 + 2 - 3', '(- (+ 1 2) 3)'],
+					['1 - 2 + 3', '(+ (- 1 2) 3)'],
 
-			test(`keeps correct precedence for '1 * 2 + 3'`, () => {
-				const actual = parse('1 * 2 + 3');
-				expect(actual).toEqual({
-					type: 'binary',
-					left: {
-						type: 'binary',
-						left: NumberExpression(1),
-						operator: expect.objectContaining({ lexeme: '*' }),
-						right: NumberExpression(2),
-					},
-					operator: expect.objectContaining({ lexeme: '+' }),
-					right: NumberExpression(3),
-				});
-			});
+					['1 + 2 * 3', '(+ 1 (* 2 3))'],
+					['1 * 2 + 3', '(+ (* 1 2) 3)'],
+					['1 ** 2 * 3', '(* (** 1 2) 3)'],
 
-			test('keeps correct precedence for exponents', () => {
-				const actual = parse('1 ** 2 * 3');
-				expect(actual).toEqual({
-					type: 'binary',
-					left: {
-						type: 'binary',
-						left: NumberExpression(1),
-						operator: expect.objectContaining({ lexeme: '**' }),
-						right: NumberExpression(2),
-					},
-					operator: expect.objectContaining({ lexeme: '*' }),
-					right: NumberExpression(3),
-				});
+					['1 && 2 || 3', '(|| (&& 1 2) 3)'],
+					['1 || 2 && 3', '(|| 1 (&& 2 3))'],
+
+					['1 >= 2 && 2 <= 1', '(&& (>= 1 2) (<= 2 1))'],
+				]) {
+					test(`'${program}' => '${symbolicExpression}'`, () => {
+						testProgramMatchesSymbolicExpression(program, symbolicExpression);
+					});
+				}
 			});
 		});
+
 
 		test('supports grouping', () => {
 			const actual = parse('(1 + 2) * (3 + 4)');
@@ -146,6 +101,19 @@ for (const [label, parse] of [['Pratt parser', prattParse], ['Recursive descent 
 			});
 		});
 	});
+
+	function testProgramMatchesSymbolicExpression(program: string, symbolicExpression: string): void {
+		expect(toSymbolicExpression(parse(program))).toEqual(symbolicExpression);
+	}
+}
+
+function toSymbolicExpression(expression: Expression): string {
+	switch (expression.type) {
+		case 'identifier': return expression.name.lexeme;
+		case 'value': return expression.value.lexeme;
+		case 'unary': return `(${expression.operator.lexeme} ${toSymbolicExpression(expression.right)})`;
+		case 'binary': return `(${expression.operator.lexeme} ${toSymbolicExpression(expression.left)} ${toSymbolicExpression(expression.right)})`;
+	}
 }
 
 function NumberExpression(value: number): ValueExpression {
