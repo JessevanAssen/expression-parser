@@ -1,4 +1,4 @@
-import { Token } from './lexer';
+import { Token, TokenType } from './lexer';
 
 export function TokenIterator(tokens: Token[]) {
 	let index = 0;
@@ -15,5 +15,9 @@ export function TokenIterator(tokens: Token[]) {
 		return tokens[index++];
 	}
 
-	return { isAtEnd, peek, advance };
+	function check(...type: TokenType[]): boolean {
+		return type.some(t => peek()?.type === t);
+	}
+
+	return { isAtEnd, peek, advance, check };
 }

@@ -35,3 +35,8 @@ describe('numbers', () => {
 		expect(scanTokens('123.456')).toEqual([{ type: 'number', lexeme: '123.456', value: 123.456 }]);
 	});
 });
+
+test('parses identifiers', () => {
+	const lexeme = 'Cool_Value_123'
+	expect(scanTokens(lexeme)).toEqual([{ type: 'identifier', lexeme, name: lexeme }])
+})

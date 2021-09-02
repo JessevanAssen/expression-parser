@@ -1,4 +1,4 @@
-import { NumberToken, OperatorToken, scanTokens, Token } from './lexer';
+import { IdentifierToken, NumberToken, OperatorToken, scanTokens, Token, TokenType } from './lexer';
 import { Expression } from './expression';
 import { TokenIterator } from './token-iterator';
 
@@ -9,7 +9,8 @@ export function parse(source: string): Expression {
 	type PrefixParselet = {
 		parse: (token: Token) => Expression;
 	};
-	const prefixParselets: Record<string, PrefixParselet> = {
+	const prefixParselets: Partial<Record<TokenType, PrefixParselet>> = {
+		identifier: { parse: token => ({ type: 'identifier', name: token as IdentifierToken })},
 		number: { parse: token => ({ type: 'value', value: token as NumberToken }) },
 		'left-paren': { parse: () => {
 			const inner = expression();
@@ -31,14 +32,14 @@ export function parse(source: string): Expression {
 		if (!(token.type in prefixParselets)) {
 			throw new Error(`Could not parse '${token.lexeme}'`);
 		}
-		return prefixParselets[token.type];
+		return prefixParselets[token.type]!;
 	}
 
 	type InfixParselet = {
 		precedence: number;
 		parse: (left: Expression, token: OperatorToken) => Expression;
 	};
-	const infixParselets: Record<string, InfixParselet> = {
+	const infixParselets: Partial<Record<TokenType, InfixParselet>> = {
 		'star-star': Binary(16, { rightAssociative: true }),
 		'star': Binary(15),
 		'slash': Binary(15),

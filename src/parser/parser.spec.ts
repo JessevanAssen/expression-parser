@@ -1,4 +1,4 @@
-import { ValueExpression } from './expression';
+import { IdentifierExpression, ValueExpression } from './expression';
 import { parse as prattParse } from './pratt-parser';
 import { parse as recursiveDescentParse } from './recursive-descent-parser';
 
@@ -8,6 +8,11 @@ for (const [label, parse] of [['Pratt parser', prattParse], ['Recursive descent 
 			const actual = parse('12345');
 			expect(actual).toEqual(NumberExpression(12345));
 		});
+
+		test('can parse identifiers', () => {
+			const actual = parse('foo');
+			expect(actual).toEqual(IdentifierExpression('foo'));
+		})
 
 		describe('can parse unary expressions', () => {
 			const operators = ['-', '~'];
@@ -148,4 +153,11 @@ function NumberExpression(value: number): ValueExpression {
 		type: 'value',
 		value: { type: 'number', value, lexeme: String(value) },
 	};
+}
+
+function IdentifierExpression(name: string): IdentifierExpression {
+	return {
+		type: 'identifier',
+		name: { type: 'identifier', name, lexeme: name },
+	}
 }

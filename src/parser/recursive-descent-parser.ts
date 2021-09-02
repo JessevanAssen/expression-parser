@@ -1,5 +1,5 @@
 import { OperatorToken, OperatorTokenType, scanTokens } from './lexer';
-import { Expression, ValueExpression } from './expression';
+import { Expression } from './expression';
 import { TokenIterator } from './token-iterator';
 
 export function parse(source: string): Expression {
@@ -79,15 +79,13 @@ export function parse(source: string): Expression {
 			iterator.advance();
 			return inner;
 		}
-
-		return value();
-	}
-
-	function value(): ValueExpression {
-		const token = iterator.peek();
 		if (token.type === 'number') {
 			iterator.advance();
 			return { type: 'value', value: token };
+		}
+		if (token.type === 'identifier') {
+			iterator.advance();
+			return { type: 'identifier', name: token };
 		}
 		throw new Error('Expect expression');
 	}

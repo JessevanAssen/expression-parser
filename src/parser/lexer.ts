@@ -2,15 +2,18 @@ export type PrefixOperatorTokenType = 'minus' | 'tilde' | 'bang' | 'left-paren';
 export type InfixOperatorTokenType = 'plus' | 'minus' | 'star' | 'star-star' | 'slash' | 'remainder';
 export type OperatorTokenType = PrefixOperatorTokenType | InfixOperatorTokenType | 'right-paren' | 'eof';
 export type ValueTokenType = 'number';
-export type TokenType = OperatorTokenType | ValueTokenType;
+export type IdentifierTokenType = 'identifier';
+export type TokenType = OperatorTokenType | ValueTokenType | IdentifierTokenType;
 
 export type OperatorToken = { type: OperatorTokenType; lexeme: string };
 export type NumberToken = { type: 'number', lexeme: string; value: number };
 export type ValueToken = NumberToken;
-export type Token = OperatorToken | ValueToken;
+export type IdentifierToken = { type: IdentifierTokenType, lexeme: string, name: string };
+export type Token = OperatorToken | ValueToken | IdentifierToken;
 
 export function scanTokens(source: string): Token[] {
 	let index = 0;
+	let start = index;
 
 	function isAtEnd() {
 		return index >= source.length;
@@ -38,7 +41,7 @@ export function scanTokens(source: string): Token[] {
 
 	function isNumeric(char: string) {
 		const codePoint = char.codePointAt(0)!;
-		return codePoint >= '0'.codePointAt(0)! && codePoint <= '9'.codePointAt(0)!;
+		return codePoint >= 0x30 && codePoint < 0x3a;
 	}
 
 	function skipNumerics() {
@@ -48,8 +51,6 @@ export function scanTokens(source: string): Token[] {
 	}
 
 	function number(): NumberToken {
-		let start = index;
-
 		skipNumerics();
 		if (peek() === '.') {
 			advance();
@@ -60,9 +61,29 @@ export function scanTokens(source: string): Token[] {
 		return { type: 'number', lexeme, value: Number(lexeme) };
 	}
 
+	function isAlpha(char: string) {
+		const codePoint = char.codePointAt(0)!;
+		return codePoint >= 0x41 && codePoint <= 0x5a ||
+			codePoint >= 0x61 && codePoint <= 0x7a ||
+			char === '_';
+	}
+
+	function skipAlphaNumerics() {
+		while(!isAtEnd() && (isAlpha(peek()) || isNumeric(peek()))) {
+			advance();
+		}
+	}
+
+	function identifier(): IdentifierToken {
+		skipAlphaNumerics();
+		const lexeme = source.slice(start, index);
+		return { type: 'identifier', lexeme, name: lexeme };
+	}
+
 	const tokens: Token[] = [];
 
 	while (!isAtEnd()) {
+		start = index;
 		const char = peek();
 
 		switch (char) {
@@ -86,6 +107,11 @@ export function scanTokens(source: string): Token[] {
 			default:
 				if (isNumeric(char)) {
 					tokens.push(number());
+					break;
+				}
+
+				if (isAlpha(char)) {
+					tokens.push(identifier());
 					break;
 				}
 
